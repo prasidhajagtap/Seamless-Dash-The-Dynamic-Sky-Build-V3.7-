@@ -1,34 +1,66 @@
-The Master Project Prompt (V3.4: Fresh Morning Edition)
-Project Goal: A high-performance, mobile-first web game for Seamex (Aditya Birla Group), themed around a "Seamless" and "Delightful" employee experience.
+🚀 Master Prompt: Seamless Dash (Final v38)
+Role: Act as an expert Game Developer specializing in HTML5 Canvas and Vanilla JavaScript. Objective: Maintain, update, or recreate "Seamless Dash," a high-performance, mobile-responsive web game for the Seamex / Poornata App ecosystem.
 
-1. Visuals & Atmosphere:
+1. Core Identity & Branding
+Game Title: Seamless Dash.
 
-Theme: "Fresh Good Morning." Use a bright linear-gradient sky (Sky Blue to White).
+Brand: Seamex (Powered by Seamex).
 
-Flying Illusion: Use three layers of parallax: Far-background subtle dots, mid-ground soft white clouds, and foreground fast-moving blue "wind streaks."
+Visual Style: Modern, clean HR-tech aesthetic. Use a professional color palette: Red (#A01018), Gold (#FFC107), Sky Blue (#e3f2fd), and Royal Blue (#0984e3).
 
-Character: A large (92px) character (AVA) that "bobs" slightly on a sine wave to simulate balancing in flight.
+Trivia: Integrate Seamex/Poornata HR transformation facts on the Game Over screen.
 
-Branding: Powered by Seamex. The logo appears on Login and Game Over screens only.
+2. Technical Architecture
+Engine: HTML5 Canvas (2D Context) with alpha: false for optimization.
 
-2. Core Gameplay Logic:
+State Management: A global STATE object tracking phase (MENU, READY, PLAYING, GAMEOVER), score, level, shield (timer), and shake (intensity).
 
-Input: "Hold to Fly, Lift to Die." The game remains in a READY state (no movement, no points) until the first touch.
+Persistence: * Save user profile to seamex_user_v38.
 
-Ergonomics: Character follows touch with a -75px vertical offset to ensure the player's finger doesn't block the view of the character or incoming viruses.
+Save global leaderboard to seamex_lb_v38.
 
-Difficulty: Speed and spawn rates increase every 100 points, capping at Level 10.
+Save individual high scores per Poornata ID using seamex_hs_[ID].
 
-Power-up: Shield (8 seconds). Visualized by a blue pulsing ring and a dedicated HUD countdown timer ("SHIELD: 8.0s").
+3. UI/UX Requirements
+Responsive Design: Full-screen coverage with auto-resizing. Use a high z-index for UI layers to ensure they vanish during gameplay.
 
-3. Advanced Features:
+Validation: * Name: Regex /^[A-Za-z\s]{3,}$/ (Letters only, min 3).
 
-Performance: All animations (background, particles, and color shifts) must be rendered directly on the HTML5 Canvas to ensure 60FPS on iOS Safari and prevent "ghosting."
+Poornata ID: Regex /^[0-9]{4,10}$/ (Numbers only, 4-10 digits).
 
-Collision Feedback: When the shield hits a virus, it triggers a "Spark Particle" effect (blue sparks) instead of ending the game.
+Game HUD: Show real-time Score, Level, and Best Score. Include a "Start Toast" and a "Shield Timer" countdown.
 
-Leaderboard: Local/Global Top 8 high-score tracking using localStorage.
+4. Gameplay Mechanics
+Flight Physics: "Hold to Fly" mechanic. Release to end the game immediately (End Dash).
 
-Sharing: Quirky challenge message: "I dashed past the viruses and scored X! Can you beat my streak?" including the Poornata App link (https://onelink.to/6kpm3g).
+Character: Large character sprite with a bobbing animation and a motion-trail history effect (5-10 frames).
 
-Trivia: Random Seamex-specific facts displayed on the Game Over screen, including links to the Seamex story.
+Obstacles (Viruses): * Spawn rate and speed increase per Level (every 100 points).
+
+Level 10+ adds horizontal velocity to enemies.
+
+Shield System: * Spawns randomly after 50 points.
+
+Grants 8 seconds of invulnerability.
+
+On contact with viruses: Destroy virus, trigger yellow particles, and trigger a 10px screen shake.
+
+Environmental Progression: * Level 1-3: Day Sky.
+
+Level 4-6: Sunset.
+
+Level 7+: Night Sky.
+
+Use lerpColor for smooth background transitions.
+
+5. Critical Logic Fixes (Non-Negotiable)
+Screen Shake Decay: The decay logic (STATE.shake *= 0.85) must run at the start of the update() loop, outside of any state checks, to prevent permanent vibration bugs when destroying viruses with a shield.
+
+Game Over Reset: On Game Over, the character must hard-stop bobbing (player.bob = 0) and the motion trail must be cleared to prevent visual ghosting.
+
+Z-Index: Ensure the #ui-layer has pointer-events: none but child containers have pointer-events: auto to allow button clicks without blocking game input.
+
+6. Asset References
+Images: character.png, icons8-virus-60.png, sheild.png, cloud1.png, NEW Seamex logo.png.
+
+Audio: bgm.mp3 (looping), Die.mp3, levelup.mp3, powerup.mp3.
