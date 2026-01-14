@@ -1,43 +1,72 @@
-# Seamless Dash (Powered by Seamex)
+🚀 Seamless Dash - Seamex
+Seamless Dash is a hyper-casual, "endless flyer" game built using HTML5 Canvas and Vanilla JavaScript. It is designed to provide a branded, engaging experience for users within the Poornata App, featuring dynamic difficulty and real-time social sharing.
 
-Seamless Dash is a high-performance, mobile-first arcade game developed for the Seamex ecosystem. It serves as an engaging way to showcase the "Seamless" nature of modern HR digital transformation.
+🌟 Key Features
+1. Advanced Game Mechanics
+Physics-Based Flight: A smooth "Hold to Fly" mechanic with character bobbing and a motion-trail history effect.
 
-## 🚀 Game Concept
-You play as **AVA**, flying through a clear morning sky. The goal is to maintain your "Seamless Streak" by dodging "Inefficiency Viruses."
+Dynamic Backgrounds: A 3-stage color interpolation system that shifts the sky from Day to Sunset to Night as the player levels up.
 
-- **The Golden Rule:** Never let go! 
-- **Touch & Hold:** Fly and dodge.
-- **Lift Finger:** Game Over.
+Impact Feedback: Enhanced screen shake logic that triggers on hits and decays naturally, ensuring the UI remains stable during gameplay.
 
-## ✨ Key Features
-- **Fluid Animation:** Optimized HTML5 Canvas rendering ensures a smooth 60FPS experience even on mobile browsers (iOS Safari/Android Chrome).
-- **Parallax Skies:** Multi-layered background movement creates a realistic high-altitude flying sensation.
-- **Power-ups:** Collect the **Seamex Shield** to gain 8 seconds of invincibility.
-- **Integrated Trivia:** Learn about the Seamex employee experience and digital HR transformation through random facts on the Game Over screen.
-- **Global Leaderboard:** Track your best dashes locally and challenge your colleagues.
-- **Social Sharing:** Easily share your high scores with a quirky challenge message via the native mobile share menu.
+Shield System: Power-ups appear after 50 points, granting 8 seconds of invulnerability with a visual countdown and particle effects.
 
-## 🛠️ Technical Setup
-The game is built as a **Single-File Application** for maximum portability and ease of deployment.
+2. Branding & UI/UX
+Dash Branding: Integrated "Powered by Seamex" logos and "Seamless Dash" identity on the menu and game-over screens.
 
-### Assets Required:
-Ensure the following files are in your root directory:
-- `character.png` (92x92 AVA character)
-- `icons8-virus-60.png` (Enemy 1)
-- `icons8-virus-60 (1).png` (Enemy 2)
-- `sheild.png` (Shield power-up)
-- `bgm.mp3` (8-bit Morning Theme)
-- `Die.mp3` (Game over sound)
-- `levelup.mp3` (Level progression sound)
-- `powerup.mp3` (Shield activation sound)
-- `NEW Seamex logo.png` (Branding)
+Responsive Canvas: Automatically scales to fit any mobile or desktop screen resolution while maintaining aspect ratio.
 
-## 📱 Mobile Optimization
-The game uses a **-75px vertical offset** for touch controls. This ergonomic design ensures that the user's thumb never obstructs their view of the character or upcoming obstacles.
+Z-Index Management: Strict UI layering ensures input screens and menus disappear completely during active gameplay.
 
-## 🔗 Links
-- **Play/Download App:** [Poornata App](https://onelink.to/6kpm3g)
-- **Learn More:** [Seamex Story](https://www.adityabirla.com/media/stories/seamex-creating-delightful-employee-experiences/)
+3. Data & Validation
+Strict Login Validation: * Name: Letters and spaces only (minimum 3 characters).
 
----
-*Developed with a focus on Employee Delight through Agile Technology.*
+Poornata ID: Numbers only (4–10 digits).
+
+Persistence: High scores and user profiles are saved locally (localStorage) per Poornata ID.
+
+Leaderboard: A real-time Top 5 ranking system displayed on the menu and death screens.
+
+4. Engagement Tools
+Trivia System: Displays Seamex-specific trivia and HR transformation facts on the Game Over screen to reinforce brand messaging.
+
+Social Challenge: A native "Share Challenge" button that allows users to share their scores via the device's native share menu or clipboard.
+
+🛠️ Technical Stack
+Engine: HTML5 Canvas API (2D Context).
+
+Logic: Vanilla JavaScript (ES6+).
+
+Styles: CSS3 with Flexbox and CSS Variables for theme management.
+
+Assets: Optimized PNG sprites and MP3 audio files.
+
+🎮 How to Play
+Login: Enter your Name and Poornata ID.
+
+Start: Place your finger/mouse on the screen to begin.
+
+Fly: Hold to ascend/move toward your finger; Release to end the dash (Game Over).
+
+Dodge: Avoid the pink and red viruses.
+
+Power-Up: Collect the Blue Shield to destroy viruses on contact for a limited time.
+
+📁 File Structure
+To run the game, ensure the following assets are in the root folder:
+
+index.html (The core logic provided)
+
+character.png (The Dash character)
+
+cloud1.png (Background clouds)
+
+icons8-virus-60.png & icons8-virus-60 (1).png (Obstacles)
+
+sheild.png (Power-up icon)
+
+NEW Seamex logo.png (Branding)
+
+Audio Files: bgm.mp3, Die.mp3, levelup.mp3, powerup.mp3
+
+Development Note: The screen shake decay logic is globally handled in the update() loop to prevent "permanent vibration" bugs during shield collisions.
