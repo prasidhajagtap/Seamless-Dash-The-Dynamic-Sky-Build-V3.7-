@@ -269,11 +269,24 @@
     canvas.addEventListener('mouseup', () => { if(STATE.phase === 'PLAYING') endGame(); });
 
     function update(dt) {
-        dots.forEach(d => { 
-            d.y += d.s * (STATE.phase === 'PLAYING' ? 3 : 1); 
-            d.pulse += 0.05;
-            if(d.y > H) { d.y = -10; d.x = Math.random()*W; } 
-        });
+        // 1. ALWAYS decay screen shake (Move this here)
+    if (STATE.shake > 0) {
+        STATE.shake *= 0.85; // Reduces shake by 15% every frame
+        if (STATE.shake < 0.1) STATE.shake = 0; // Hard stop when small enough
+    }
+
+    dots.forEach(d => { 
+        d.y += d.s * (STATE.phase === 'PLAYING' ? 3 : 1); 
+        d.pulse += 0.05;
+        if(d.y > H) { d.y = -10; d.x = Math.random()*W; } 
+    });
+
+    // 2. Handle Game Over state
+    if(STATE.phase === 'GAMEOVER') {
+        player.bob = 0;
+        // Removed the old shake decay from here
+        return;
+    }
 
         // LOCK POSITIONS IF GAMEOVER
         if(STATE.phase === 'GAMEOVER') {
