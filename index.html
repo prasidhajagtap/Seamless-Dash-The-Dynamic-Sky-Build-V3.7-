@@ -219,7 +219,7 @@
         document.getElementById('val-best').textContent = STATE.highscore;
         STATE.phase = 'READY'; STATE.score = 0; STATE.level = 1; STATE.shield = 0; STATE.bgTransition = 0;
         enemies = []; items = []; particles = []; player.history = [];
-        player.x = W/2; player.y = H*0.75; player.bob = 0; // Reset bobbing
+        player.x = W/2; player.y = H*0.75; player.bob = 0;
         document.body.className = 'state-playing';
         document.getElementById('start-toast').style.display = 'block';
         if(!animId) requestAnimationFrame(loop);
@@ -227,9 +227,11 @@
 
     function endGame() {
         if(STATE.phase !== 'PLAYING') return;
-        STATE.phase = 'GAMEOVER'; STATE.shake = 20;
-        player.bob = 0; // STOP VIBRATION
-        player.history = []; 
+        STATE.phase = 'GAMEOVER'; 
+        STATE.shake = 15; // Initial impact shake
+        player.bob = 0;   // Hard-stop bobbing
+        player.history = []; // Clear trail immediately
+        
         audio.bgm.pause();
         if(STATE.sound) audio.die.play().catch(()=>{});
         
@@ -273,15 +275,16 @@
             if(d.y > H) { d.y = -10; d.x = Math.random()*W; } 
         });
 
-        if(STATE.phase === 'READY') {
-            player.x = W/2 + Math.sin(Date.now()*0.005)*10;
-            player.bob = Math.sin(Date.now()*0.006) * 6; // Soft bobbing in ready state
+        // LOCK POSITIONS IF GAMEOVER
+        if(STATE.phase === 'GAMEOVER') {
+            player.bob = 0;
+            if(STATE.shake > 0) STATE.shake *= 0.85;
             return;
         }
-        
-        // FIXED: Skip player animation logic if GameOver
-        if(STATE.phase !== 'PLAYING') {
-            player.bob = 0; 
+
+        if(STATE.phase === 'READY') {
+            player.x = W/2 + Math.sin(Date.now()*0.005)*10;
+            player.bob = Math.sin(Date.now()*0.006) * 6;
             return;
         }
 
@@ -311,8 +314,6 @@
             document.getElementById('shield-timer').textContent = Math.max(0, STATE.shield/60).toFixed(1);
         } else { document.getElementById('shield-toast').style.display = 'none'; }
 
-        if(STATE.shake > 0) STATE.shake *= 0.9;
-
         clouds.forEach(c => { c.y += c.s * 2.5; if(c.y > H + 100) { c.y = -120; c.x = Math.random()*W; } });
         
         for(let i=particles.length-1; i>=0; i--){
@@ -324,7 +325,6 @@
             let e = enemies[i]; 
             e.y += e.s * (dt/16.6);
             e.angle += e.rotSpd; 
-            
             if(STATE.level >= 10) e.x += e.vx;
 
             const dist = Math.hypot(player.x - e.x, player.y - (e.y - player.bob));
@@ -365,7 +365,8 @@
 
     function draw() {
         ctx.save();
-        if(STATE.shake > 1) ctx.translate((Math.random()-0.5)*STATE.shake, (Math.random()-0.5)*STATE.shake);
+        // Handle Screen Shake
+        if(STATE.shake > 0.5) ctx.translate((Math.random()-0.5)*STATE.shake, (Math.random()-0.5)*STATE.shake);
 
         let currentTop, currentBot;
         if(STATE.bgTransition < 0.5) {
@@ -397,10 +398,13 @@
             clouds.forEach(c => ctx.drawImage(document.getElementById('asset-cloud'), c.x - c.w/2, c.y, c.w, c.w*0.6));
         }
 
-        player.history.forEach((pos, i) => {
-            ctx.globalAlpha = 0.3 - (i * 0.05);
-            ctx.drawImage(document.getElementById('asset-player'), pos.x-46, pos.y-46, 92, 92);
-        });
+        // Only draw history trail if not gameover
+        if(STATE.phase !== 'GAMEOVER') {
+            player.history.forEach((pos, i) => {
+                ctx.globalAlpha = 0.3 - (i * 0.05);
+                ctx.drawImage(document.getElementById('asset-player'), pos.x-46, pos.y-46, 92, 92);
+            });
+        }
         ctx.globalAlpha = 1.0;
 
         enemies.forEach(e => {
@@ -419,12 +423,12 @@
         });
         ctx.globalAlpha = 1.0;
 
-        // FIXED: Only draw bobbing if not in GameOver
-        let drawBob = (STATE.phase === 'GAMEOVER') ? 0 : player.bob;
-        ctx.drawImage(document.getElementById('asset-player'), player.x-46, player.y-46 + drawBob, 92, 92);
+        // FINAL POSITION CHECK: FORCE ZERO BOB ON GAMEOVER
+        let finalBob = (STATE.phase === 'GAMEOVER') ? 0 : player.bob;
+        ctx.drawImage(document.getElementById('asset-player'), player.x-46, (player.y-46) + finalBob, 92, 92);
         
         if(STATE.shield > 0 && STATE.phase === 'PLAYING') {
-            ctx.beginPath(); ctx.arc(player.x, player.y + drawBob, 60, 0, Math.PI*2);
+            ctx.beginPath(); ctx.arc(player.x, player.y + finalBob, 60, 0, Math.PI*2);
             ctx.strokeStyle = `rgba(255, 193, 7, ${0.5 + Math.sin(Date.now()*0.01)*0.3})`; ctx.lineWidth = 5; ctx.stroke();
         }
         
@@ -450,7 +454,7 @@
         if(!STATE.sound) audio.bgm.pause();
     };
     document.getElementById('btn-share').onclick = () => {
-        const msg = `🚀 I dashed past the viruses and scored ${Math.floor(STATE.score)} in Seamless Dash! Play here: https://onelink.to/6kpm3g`;
+        const msg = `🚀 I dashed past the viruses and scored ${Math.floor(STATE.score)} in Seamless Dash on Poornata App - Download now to Play here: https://onelink.to/6kpm3g`;
         if (navigator.share) navigator.share({ text: msg });
         else { navigator.clipboard.writeText(msg); alert("Challenge copied!"); }
     };
