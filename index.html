@@ -7,13 +7,13 @@
     <style>
         :root { --red: #A01018; --gold: #FFC107; --sky: #e3f2fd; --blue: #0984e3; }
         
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #fff; font-family: 'Segoe UI', sans-serif; touch-action: none; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; }
         canvas { display: block; position: absolute; top: 0; left: 0; z-index: 2; width: 100%; height: 100%; }
 
         #ui-layer { position: absolute; inset: 0; z-index: 10; pointer-events: none; display: flex; align-items: center; justify-content: center; }
         .screen-box { 
             background: rgba(255, 255, 255, 0.98); padding: 25px; border-radius: 30px; width: 88%; max-width: 360px; 
-            text-align: center; pointer-events: auto; box-shadow: 0 15px 45px rgba(0,0,0,0.15); 
+            text-align: center; pointer-events: auto; box-shadow: 0 15px 45px rgba(0,0,0,0.3); 
             border-top: 8px solid var(--red); display: none; flex-direction: column; max-height: 90vh; overflow-y: auto;
         }
 
@@ -120,8 +120,20 @@
 
     const STATE = {
         phase: 'MENU', score: 0, highscore: 0, level: 1,
-        shield: 0, user: null, sound: true, shake: 0
+        shield: 0, user: null, sound: true, shake: 0,
+        bgTransition: 0 // 0 = day, 0.5 = sunset, 1 = night
     };
+
+    // Color definitions for smooth transition
+    const COLORS = {
+        day: { top: [227, 242, 253], bot: [255, 255, 255] },
+        sunset: { top: [255, 154, 158], bot: [250, 208, 196] },
+        night: { top: [30, 60, 114], bot: [42, 82, 152] }
+    };
+
+    function lerpColor(c1, c2, t) {
+        return c1.map((v, i) => Math.floor(v + (c2[i] - v) * t));
+    }
 
     const TRIVIA = [
         "Seamex enables agile digital HR transformations for modern workplaces.",
@@ -138,7 +150,7 @@
     audio.bgm.loop = true;
 
     let player = { x:0, y:0, r:46, tx:0, ty:0, bob:0, history: [] };
-    let enemies = [], items = [], clouds = [], streaks = [], dots = [], particles = [];
+    let enemies = [], items = [], clouds = [], dots = [], particles = [];
 
     function updateGreeting() {
         const hour = new Date().getHours();
@@ -149,9 +161,11 @@
     function resize() {
         W = canvas.width = window.innerWidth;
         H = canvas.height = window.innerHeight;
-        dots = Array.from({length: 40}, () => ({ x:Math.random()*W, y:Math.random()*H, s:0.5+Math.random(), r:1+Math.random()*2 }));
+        dots = Array.from({length: 45}, () => ({ 
+            x:Math.random()*W, y:Math.random()*H, s:0.3+Math.random()*0.5, 
+            r:1+Math.random()*2, pulse: Math.random()*Math.PI 
+        }));
         clouds = Array.from({length: 6}, () => ({ x:Math.random()*W, y:Math.random()*H, s:0.8+Math.random()*1.2, w:100+Math.random()*80 }));
-        streaks = Array.from({length: 12}, () => ({ x:Math.random()*W, y:Math.random()*H, s:12+Math.random()*8, l:30+Math.random()*40 }));
     }
     window.onresize = resize; resize();
 
@@ -179,7 +193,6 @@
         }
         updateLB();
     }
-    initUser();
 
     function updateLB() {
         const lb = JSON.parse(localStorage.getItem('seamex_lb_v38') || '[]');
@@ -205,7 +218,7 @@
         }
         STATE.highscore = localStorage.getItem('seamex_hs_' + STATE.user.id) || 0;
         document.getElementById('val-best').textContent = STATE.highscore;
-        STATE.phase = 'READY'; STATE.score = 0; STATE.level = 1; STATE.shield = 0;
+        STATE.phase = 'READY'; STATE.score = 0; STATE.level = 1; STATE.shield = 0; STATE.bgTransition = 0;
         enemies = []; items = []; particles = []; player.history = [];
         player.x = W/2; player.y = H*0.75;
         document.body.className = 'state-playing';
@@ -216,6 +229,8 @@
     function endGame() {
         if(STATE.phase !== 'PLAYING') return;
         STATE.phase = 'GAMEOVER'; STATE.shake = 20;
+        player.bob = 0; // Stop vibration on death
+        player.history = []; // Clear trail
         audio.bgm.pause();
         if(STATE.sound) audio.die.play().catch(()=>{});
         
@@ -226,7 +241,6 @@
         localStorage.setItem('seamex_lb_v38', JSON.stringify(lb.slice(0, 10)));
         if(currentScore > STATE.highscore) localStorage.setItem('seamex_hs_' + STATE.user.id, currentScore);
         
-        // Motivation logic
         const nextRank = lb.find(e => e.score > currentScore);
         document.getElementById('motivation-tag').textContent = nextRank ? `You were only ${nextRank.score - currentScore} pts away from #${lb.indexOf(nextRank)+1}!` : "NEW ALL-TIME RECORD!";
         
@@ -254,9 +268,15 @@
     canvas.addEventListener('mouseup', () => { if(STATE.phase === 'PLAYING') endGame(); });
 
     function update(dt) {
+        // Star movement always happens for living background
+        dots.forEach(d => { 
+            d.y += d.s * (STATE.phase === 'PLAYING' ? 3 : 1); 
+            d.pulse += 0.05;
+            if(d.y > H) { d.y = -10; d.x = Math.random()*W; } 
+        });
+
         if(STATE.phase === 'READY') {
             player.x = W/2 + Math.sin(Date.now()*0.005)*10;
-            dots.forEach(d => { d.y += d.s; if(d.y > H) d.y = -10; });
             return;
         }
         if(STATE.phase !== 'PLAYING') return;
@@ -264,12 +284,19 @@
         STATE.score += 0.15 * (dt/16.6);
         document.getElementById('val-score').textContent = Math.floor(STATE.score);
         
+        // Handle Level Up & Background Transition Target
         if(Math.floor(STATE.score) > 0 && Math.floor(STATE.score) % 100 === 0 && (STATE.score % 100) < 0.2) {
             STATE.level++; if(STATE.sound) audio.lvl.play().catch(()=>{});
         }
         document.getElementById('val-lvl').textContent = STATE.level;
+        
+        // Smoothly update bgTransition toward target
+        let targetTransition = 0;
+        if(STATE.level >= 4 && STATE.level < 7) targetTransition = 0.5;
+        else if(STATE.level >= 7) targetTransition = 1.0;
+        STATE.bgTransition += (targetTransition - STATE.bgTransition) * 0.005;
 
-        // Player movement & History (Trail)
+        // Player movement
         player.bob = Math.sin(Date.now()*0.006) * 6;
         player.x += (player.tx - player.x) * 0.18 * (dt/16.6);
         player.y += (player.ty - player.y) * 0.18 * (dt/16.6);
@@ -282,21 +309,24 @@
             document.getElementById('shield-timer').textContent = Math.max(0, STATE.shield/60).toFixed(1);
         } else { document.getElementById('shield-toast').style.display = 'none'; }
 
-        // Shake logic
         if(STATE.shake > 0) STATE.shake *= 0.9;
 
-        dots.forEach(d => { d.y += d.s * 2; if(d.y > H) d.y = -10; });
         clouds.forEach(c => { c.y += c.s * 2.5; if(c.y > H + 100) { c.y = -120; c.x = Math.random()*W; } });
         
-        // Particles
         for(let i=particles.length-1; i>=0; i--){
             let p = particles[i]; p.x += p.vx; p.y += p.vy; p.life -= 0.02;
             if(p.life <= 0) particles.splice(i,1);
         }
 
-        // Enemy Collision with Juice
+        // Enemy Logic
         for(let i=enemies.length-1; i>=0; i--) {
-            let e = enemies[i]; e.y += e.s * (dt/16.6);
+            let e = enemies[i]; 
+            e.y += e.s * (dt/16.6);
+            e.angle += e.rotSpd; // Organic rotation
+            
+            // Post level 10 drift
+            if(STATE.level >= 10) e.x += e.vx;
+
             const dist = Math.hypot(player.x - e.x, player.y - (e.y - player.bob));
             if(dist < player.r + e.r - 10) {
                 if(STATE.shield > 0) {
@@ -305,7 +335,7 @@
                     enemies.splice(i,1);
                 } else { endGame(); return; }
             }
-            if(e.y > H + 100) enemies.splice(i,1);
+            if(e.y > H + 100 || e.x < -50 || e.x > W+50) enemies.splice(i,1);
         }
 
         // Power-ups
@@ -319,10 +349,17 @@
             if(it.y > H + 100) items.splice(i,1);
         }
         
-        // Balanced Wave Spawn
         const rate = 0.015 + (Math.min(STATE.level, 10) * 0.005);
         if(Math.random() < rate) {
-            enemies.push({ x:Math.random()*W, y:-60, r:22+Math.random()*20, s:4 + (STATE.level*0.4), img: Math.random()>0.5?document.getElementById('asset-v1'):document.getElementById('asset-v2') });
+            enemies.push({ 
+                x:Math.random()*W, y:-60, 
+                r:22+Math.random()*20, 
+                s:4 + (STATE.level*0.4), 
+                vx: (Math.random()-0.5)*2, // Drifting speed
+                angle: Math.random()*Math.PI*2,
+                rotSpd: (Math.random()-0.5)*0.1, // Random rotation speed
+                img: Math.random()>0.5?document.getElementById('asset-v1'):document.getElementById('asset-v2') 
+            });
         }
         if(STATE.score > 50 && Math.random() < 0.003) items.push({ x:Math.random()*W, y:-60, r:30 });
     }
@@ -331,13 +368,38 @@
         ctx.save();
         if(STATE.shake > 1) ctx.translate((Math.random()-0.5)*STATE.shake, (Math.random()-0.5)*STATE.shake);
 
-        let topColor = '#e3f2fd', botColor = '#ffffff';
-        if(STATE.level >= 4 && STATE.level < 7) { topColor = '#ff9a9e'; botColor = '#fad0c4'; }
-        else if(STATE.level >= 7) { topColor = '#1e3c72'; botColor = '#2a5298'; }
+        // Calculate smooth background color
+        let currentTop, currentBot;
+        if(STATE.bgTransition < 0.5) {
+            let t = STATE.bgTransition * 2;
+            currentTop = lerpColor(COLORS.day.top, COLORS.sunset.top, t);
+            currentBot = lerpColor(COLORS.day.bot, COLORS.sunset.bot, t);
+        } else {
+            let t = (STATE.bgTransition - 0.5) * 2;
+            currentTop = lerpColor(COLORS.sunset.top, COLORS.night.top, t);
+            currentBot = lerpColor(COLORS.sunset.bot, COLORS.night.bot, t);
+        }
 
         let grad = ctx.createLinearGradient(0,0,0,H);
-        grad.addColorStop(0, topColor); grad.addColorStop(1, botColor);
+        grad.addColorStop(0, `rgb(${currentTop.join(',')})`); 
+        grad.addColorStop(1, `rgb(${currentBot.join(',')})`);
         ctx.fillStyle = grad; ctx.fillRect(0,0,W,H);
+
+        // Grok-style background dimming for Menu/GameOver
+        if(STATE.phase === 'MENU' || STATE.phase === 'GAMEOVER') {
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillRect(0,0,W,H);
+        }
+
+        // Stars/Dots with pulsing effect
+        dots.forEach(d => { 
+            ctx.fillStyle = `rgba(255,255,255,${0.3 + Math.sin(d.pulse)*0.2})`;
+            ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI*2); ctx.fill(); 
+        });
+
+        if(STATE.phase !== 'MENU' && STATE.phase !== 'GAMEOVER') {
+            clouds.forEach(c => ctx.drawImage(document.getElementById('asset-cloud'), c.x - c.w/2, c.y, c.w, c.w*0.6));
+        }
 
         // Trail Juice
         player.history.forEach((pos, i) => {
@@ -346,14 +408,17 @@
         });
         ctx.globalAlpha = 1.0;
 
-        ctx.fillStyle = STATE.level >= 7 ? 'rgba(255,255,255,0.3)' : 'rgba(9, 132, 227, 0.15)';
-        dots.forEach(d => { ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI*2); ctx.fill(); });
+        // Enemies with Rotation
+        enemies.forEach(e => {
+            ctx.save();
+            ctx.translate(e.x, e.y);
+            ctx.rotate(e.angle);
+            ctx.drawImage(e.img, -e.r, -e.r, e.r*2, e.r*2);
+            ctx.restore();
+        });
 
-        clouds.forEach(c => ctx.drawImage(document.getElementById('asset-cloud'), c.x - c.w/2, c.y, c.w, c.w*0.6));
-        enemies.forEach(e => ctx.drawImage(e.img, e.x-e.r, e.y-e.r, e.r*2, e.r*2));
         items.forEach(it => ctx.drawImage(document.getElementById('asset-shield'), it.x-30, it.y-30, 60, 60));
 
-        // Particles
         particles.forEach(p => {
             ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
             ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
@@ -361,11 +426,13 @@
         ctx.globalAlpha = 1.0;
 
         // Player
-        if(STATE.shield > 0) {
-            ctx.beginPath(); ctx.arc(player.x, player.y + player.bob, 60, 0, Math.PI*2);
-            ctx.strokeStyle = `rgba(255, 193, 7, ${0.5 + Math.sin(Date.now()*0.01)*0.3})`; ctx.lineWidth = 5; ctx.stroke();
+        if(STATE.phase !== 'GAMEOVER') {
+            if(STATE.shield > 0) {
+                ctx.beginPath(); ctx.arc(player.x, player.y + player.bob, 60, 0, Math.PI*2);
+                ctx.strokeStyle = `rgba(255, 193, 7, ${0.5 + Math.sin(Date.now()*0.01)*0.3})`; ctx.lineWidth = 5; ctx.stroke();
+            }
+            ctx.drawImage(document.getElementById('asset-player'), player.x-46, player.y-46 + player.bob, 92, 92);
         }
-        ctx.drawImage(document.getElementById('asset-player'), player.x-46, player.y-46 + player.bob, 92, 92);
         ctx.restore();
     }
 
