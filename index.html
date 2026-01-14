@@ -104,7 +104,7 @@
     <div id="game-hud">
         <div class="hud-top">
             <div class="stat-pill">⭐ <span id="val-score">0</span></div>
-            <div class="stat-pill">LVL <span id="val-lvl">1</span></div>
+            <div class="stat-pill">Level: <span id="val-lvl">1</span></div>
             <div class="stat-pill">Best: <span id="val-best">0</span></div>
         </div>
         <div id="start-toast">PLACE FINGER TO START</div>
@@ -467,7 +467,7 @@
         if(!STATE.sound) audio.bgm.pause();
     };
     document.getElementById('btn-share').onclick = () => {
-        const msg = `🚀 I dashed past the viruses and scored ${Math.floor(STATE.score)} in Seamless Dash on Poornata App - Download now to Play here: https://onelink.to/6kpm3g`;
+        const msg = `🚀 I dashed past the viruses and scored ${Math.floor(STATE.score)} in Seamless Dash on Poornata App - Download now to Play: https://onelink.to/6kpm3g`;
         if (navigator.share) navigator.share({ text: msg });
         else { navigator.clipboard.writeText(msg); alert("Challenge copied!"); }
     };
